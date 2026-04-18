@@ -10,16 +10,44 @@
   ```bash
   go install github.com/wailsapp/wails/v2/cmd/wails@latest
   ```
+- 使用「考勤」刷新功能时，本机需能启动 **Chrome / Chromium**（或由 `WORK_HOUR_CHROME_PATH` 指定可执行文件）
 
 ## 开发
 
-在项目根目录：
+在项目根目录**任选其一**（推荐前两种，可避免 `goproxy.io` 拉取 `modernc.org` 时出现 **502**）：
 
 ```bash
+make dev
+```
+
+或：
+
+```bash
+chmod +x scripts/dev.sh   # 首次
+./scripts/dev.sh
+```
+
+若直接使用 `wails dev`，请确保未将 `GOPROXY` 设为易失败的 `https://goproxy.io`；可改为：
+
+```bash
+export GOPROXY=https://proxy.golang.org,direct
+# 国内可试: export GOPROXY=https://goproxy.cn,direct
 wails dev
 ```
 
-该命令会安装前端依赖、启动 Vite 开发服务并启动桌面窗口。
+使用 **Cursor / VS Code** 打开本仓库时，内置终端会读取 **`.vscode/settings.json`** 中的 `GOPROXY`（覆盖你 shell 里配置的 `goproxy.io`），一般可直接运行 `wails dev`。若仍失败，请在外部终端（如系统「终端.app」）里先 `export GOPROXY=...` 再执行。
+
+`wails dev` 会安装前端依赖、启动 Vite 开发服务并启动桌面窗口。
+
+### Makefile 快捷命令
+
+| 命令 | 说明 |
+|------|------|
+| `make dev` | 使用 `Makefile` 中的 `GOPROXY`（默认 `proxy.golang.org`）运行 `wails dev` |
+| `make tidy` | 同上代理执行 `go mod tidy`，拉全依赖 |
+| `make build` | 生产构建（`wails build`） |
+
+更换镜像：`make dev GO_MOD_PROXY=https://goproxy.cn,direct`
 
 若你更习惯手动分步执行：
 
@@ -31,7 +59,42 @@ npm run dev
 
 另开一个终端，在生成好 `frontend/dist` 的前提下用 Go 运行（通常仍推荐直接使用 `wails dev`）。
 
+## 应用配置
+
+配置文件路径由 Go 的 `os.UserConfigDir()` 决定，固定为其中的 **`ai-wails/config.json`**：
+
+- **macOS**：`~/Library/Application Support/ai-wails/config.json`
+- **Linux**（常见）：`~/.config/ai-wails/config.json`（或 `$XDG_CONFIG_HOME/ai-wails/config.json`）
+- **Windows**：`%AppData%\ai-wails\config.json`
+
+| 字段 | 说明 |
+|------|------|
+| `blogWorkDir` | 博客 / Markdown 工作目录，默认 `~/Documents/ai-wails-blog` |
+| `workHourDbPath` | 考勤 SQLite 文件路径；留空则使用下文的默认 `work_hour.db` |
+
+可在应用内通过偏好设置修改；也可直接编辑 JSON（修改后重启或按界面逻辑重新加载）。
+
+## Work hour（考勤同步）
+
+1. **刷新**：Go 使用 **chromedp** 无头打开登录页获取 Cookie（流程与 `scripts/work-hour/get_work_hour.py` 中的 Playwright 示例一致），再请求业务接口并将结果写入 **SQLite**。
+2. **Cookie**：仅从浏览器会话读取，**不从环境变量注入**。
+3. **默认数据库**：未配置 `workHourDbPath` 时，使用用户配置目录下的 **`…/ai-wails/work_hour.db`**（与 `config.json` 同父目录 `ai-wails`）。
+
+**可选环境变量**（均有占位默认值，可按实际环境覆盖）：
+
+- `WORK_HOUR_LOGIN_URL`、`WORK_HOUR_WAIT_CSS`
+- `WORK_HOUR_CHROME_PATH`（Chrome/Chromium 可执行文件路径）
+- `WORK_HOUR_TENANT_URL`、`WORK_HOUR_HR_ID_URL`、`WORK_HOUR_API_URL`
+
+首次克隆或新增依赖后，在项目根执行：`make tidy` 或 `go mod tidy`。
+
 ## 生产构建
+
+```bash
+make build
+```
+
+或：
 
 ```bash
 wails build
@@ -63,10 +126,15 @@ go build -o build/ai-wails .
 | 路径 | 说明 |
 |------|------|
 | `main.go` / `app.go` | Wails 入口与可绑定到前端的 Go API |
+| `workhour_fetch.go` / `workhour_chromedp.go` / `workhour.go` | 考勤拉取、浏览器 Cookie、SQLite |
 | `wails.json` | Wails 构建与前端脚本配置 |
+| `Makefile` | `dev` / `tidy` / `build`，统一 `GOPROXY` |
 | `frontend/` | Vite + React + TS 源码与 `package.json` |
 | `frontend/src/components/` | VS Code 风格布局相关组件 |
+| `scripts/dev.sh` | 与 `make dev` 类似：固定 `GOPROXY` 后执行 `wails dev` |
 | `scripts/npm.sh` | 可选的 npm 包装脚本 |
+| `scripts/work-hour/get_work_hour.py` | 可选：Playwright 对照调试（非运行时依赖） |
+| `.vscode/settings.json` | 编辑器集成终端的 `GOPROXY` 等 |
 
 ## 参考
 

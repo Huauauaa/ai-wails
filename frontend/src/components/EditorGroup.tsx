@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import type { AttendanceRecord } from "../types/workhour";
+import { WorkHourView } from "./WorkHourView";
 
 export type EditorTab = { id: string; title: string; dirty?: boolean };
 
@@ -14,6 +16,13 @@ type Props = {
   /** Cmd/Ctrl+S when blog editor is active */
   onSaveBlog?: () => void | Promise<void>;
   breadcrumbLabel?: string;
+  /** Work hour: DB-backed attendance table */
+  workHourView?: boolean;
+  workHourRecords?: AttendanceRecord[];
+  workHourLoading?: boolean;
+  workHourError?: string | null;
+  workHourDbPath?: string;
+  onRefreshWorkHour?: () => void;
 };
 
 const sampleLines = [
@@ -42,6 +51,12 @@ export function EditorGroup({
   onEditorContentChange,
   onSaveBlog,
   breadcrumbLabel,
+  workHourView,
+  workHourRecords = [],
+  workHourLoading = false,
+  workHourError = null,
+  workHourDbPath = "",
+  onRefreshWorkHour,
 }: Props) {
   const active = tabs.find((t) => t.id === activeId) ?? tabs[0];
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +126,10 @@ export function EditorGroup({
               <>
                 blog › <span className="text-[#e37933]">{breadcrumbLabel ?? active?.title ?? "untitled"}</span>
               </>
+            ) : workHourView ? (
+              <>
+                workhour › <span className="text-[#e37933]">attendance</span>
+              </>
             ) : (
               <>
                 ai-wails › <span className="text-[#e37933]">{active?.title ?? "Home"}</span>
@@ -119,7 +138,15 @@ export function EditorGroup({
           </span>
         </div>
 
-        {showBlogEmpty ? (
+        {workHourView ? (
+          <WorkHourView
+            records={workHourRecords}
+            loading={workHourLoading}
+            error={workHourError}
+            dbPath={workHourDbPath}
+            onRefresh={onRefreshWorkHour ?? (() => {})}
+          />
+        ) : showBlogEmpty ? (
           <div className="allow-select flex flex-1 items-center justify-center px-6 text-center text-[13px] text-[#858585]">
             No open document. Create a new file or open one from the Blog explorer.
           </div>

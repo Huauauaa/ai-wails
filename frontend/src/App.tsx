@@ -14,11 +14,15 @@ import {
   DeleteBlogFile,
   EnsureWelcomeBlogFile,
   GetBlogWorkDir,
+  GetWorkHourDBPath,
+  GetWorkHourRecords,
+  RefreshWorkHourData,
   ListBlogMarkdownFiles,
   ReadBlogFile,
   RenameBlogFile,
   WriteBlogFile,
 } from "../wailsjs/go/main/App";
+import type { AttendanceRecord } from "./types/workhour";
 
 const OTHER_TAB_ID = "_home";
 
@@ -44,6 +48,11 @@ export default function App() {
 
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [blogWorkDir, setBlogWorkDir] = useState("");
+
+  const [workHourRecords, setWorkHourRecords] = useState<AttendanceRecord[]>([]);
+  const [workHourLoading, setWorkHourLoading] = useState(false);
+  const [workHourError, setWorkHourError] = useState<string | null>(null);
+  const [workHourDbPath, setWorkHourDbPath] = useState("");
 
   const dragRef = useRef<"sidebar" | "panel" | null>(null);
 
@@ -81,11 +90,51 @@ export default function App() {
     }
   }, []);
 
+  /** 仅从本地数据库读取（进入 Workhour 页时调用） */
+  const loadWorkHour = useCallback(async () => {
+    setWorkHourLoading(true);
+    setWorkHourError(null);
+    try {
+      const [rows, dbPath] = await Promise.all([
+        GetWorkHourRecords(),
+        GetWorkHourDBPath().catch(() => ""),
+      ]);
+      setWorkHourRecords(rows as AttendanceRecord[]);
+      setWorkHourDbPath(dbPath);
+    } catch (e) {
+      setWorkHourError(e instanceof Error ? e.message : String(e));
+      setWorkHourRecords([]);
+    } finally {
+      setWorkHourLoading(false);
+    }
+  }, []);
+
+  /** 爬取 → 入库 → 再查询展示 */
+  const refreshWorkHour = useCallback(async () => {
+    setWorkHourLoading(true);
+    setWorkHourError(null);
+    try {
+      const rows = await RefreshWorkHourData();
+      setWorkHourRecords(rows as AttendanceRecord[]);
+      const dbPath = await GetWorkHourDBPath().catch(() => "");
+      setWorkHourDbPath(dbPath);
+    } catch (e) {
+      setWorkHourError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setWorkHourLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void GetBlogWorkDir()
       .then(setBlogWorkDir)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (activity !== "workhour") return;
+    void loadWorkHour();
+  }, [activity, loadWorkHour]);
 
   useEffect(() => {
     void refreshBlogFromDisk();
@@ -267,7 +316,11 @@ export default function App() {
   };
 
   const editorTabs: EditorTab[] =
-    activity === "blog" ? blogTabs : [{ id: OTHER_TAB_ID, title: "Home", dirty: false }];
+    activity === "blog"
+      ? blogTabs
+      : activity === "workhour"
+        ? [{ id: OTHER_TAB_ID, title: "Workhour", dirty: false }]
+        : [{ id: OTHER_TAB_ID, title: "Home", dirty: false }];
 
   const editorActiveId = activity === "blog" ? blogActiveId : otherActiveId;
 
@@ -282,9 +335,15 @@ export default function App() {
       <PreferencesDialog
         open={prefsOpen}
         onClose={() => setPrefsOpen(false)}
-        onSaved={(path) => {
-          setBlogWorkDir(path);
+        onSaved={() => {
+          void GetBlogWorkDir()
+            .then(setBlogWorkDir)
+            .catch(() => {});
+          void GetWorkHourDBPath()
+            .then(setWorkHourDbPath)
+            .catch(() => {});
           void refreshBlogFromDisk();
+          void loadWorkHour();
         }}
       />
       <div className="flex min-h-0 flex-1 flex-col">
@@ -300,6 +359,8 @@ export default function App() {
             onBlogNew={createBlogDoc}
             onBlogDelete={deleteBlogDoc}
             onBlogRename={renameBlogDoc}
+            workHourRecordCount={activity === "workhour" ? workHourRecords.length : undefined}
+            workHourDbPath={activity === "workhour" ? workHourDbPath : undefined}
           />
           <div className="flex min-w-0 flex-1 flex-col">
             <EditorGroup
@@ -312,6 +373,12 @@ export default function App() {
               onEditorContentChange={updateBlogContent}
               onSaveBlog={activity === "blog" ? saveActiveBlog : undefined}
               breadcrumbLabel={activeBlogDoc?.title}
+              workHourView={activity === "workhour"}
+              workHourRecords={workHourRecords}
+              workHourLoading={workHourLoading}
+              workHourError={workHourError}
+              workHourDbPath={workHourDbPath}
+              onRefreshWorkHour={refreshWorkHour}
             />
             <BottomPanel
               height={panelHeight}

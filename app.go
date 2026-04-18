@@ -18,7 +18,42 @@ type App struct {
 }
 
 type appConfig struct {
-	BlogWorkDir string `json:"blogWorkDir"`
+	BlogWorkDir    string `json:"blogWorkDir"`
+	WorkHourDBPath string `json:"workHourDbPath"`
+}
+
+func readAppConfig() (appConfig, error) {
+	p, err := configFilePath()
+	if err != nil {
+		return appConfig{}, err
+	}
+	data, err := os.ReadFile(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return appConfig{}, nil
+		}
+		return appConfig{}, err
+	}
+	var c appConfig
+	if err := json.Unmarshal(data, &c); err != nil {
+		return appConfig{}, err
+	}
+	return c, nil
+}
+
+func writeAppConfig(c appConfig) error {
+	p, err := configFilePath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(p, data, 0o600)
 }
 
 func NewApp() *App {
@@ -27,14 +62,6 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-}
-
-// Greet is exposed to the frontend as an example binding.
-func (a *App) Greet(name string) string {
-	if name == "" {
-		name = "there"
-	}
-	return "Hello " + name + ", welcome to ai-wails."
 }
 
 func configFilePath() (string, error) {
@@ -65,18 +92,8 @@ func (a *App) GetDefaultBlogWorkDir() string {
 
 // GetBlogWorkDir returns the configured blog working directory, or the default if unset.
 func (a *App) GetBlogWorkDir() string {
-	p, err := configFilePath()
-	if err != nil {
-		d, _ := defaultBlogWorkDir()
-		return d
-	}
-	data, err := os.ReadFile(p)
-	if err != nil {
-		d, _ := defaultBlogWorkDir()
-		return d
-	}
-	var c appConfig
-	if json.Unmarshal(data, &c) != nil || c.BlogWorkDir == "" {
+	c, err := readAppConfig()
+	if err != nil || c.BlogWorkDir == "" {
 		d, _ := defaultBlogWorkDir()
 		return d
 	}
@@ -92,19 +109,12 @@ func (a *App) SetBlogWorkDir(path string) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
-	p, err := configFilePath()
+	c, err := readAppConfig()
 	if err != nil {
-		return err
+		c = appConfig{}
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-		return err
-	}
-	c := appConfig{BlogWorkDir: path}
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(p, data, 0o600)
+	c.BlogWorkDir = path
+	return writeAppConfig(c)
 }
 
 // ChooseBlogWorkDir opens a native folder picker. Returns "" if the user cancels.
@@ -126,6 +136,106 @@ func (a *App) ChooseBlogWorkDir() (string, error) {
 		}
 	}
 	return runtime.OpenDirectoryDialog(a.ctx, opts)
+}
+
+// defaultWorkHourDBPath returns the built-in path for work_hour.db (under the user config directory).
+func defaultWorkHourDBPath() (string, error) {
+	d, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(d, "ai-wails")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "work_hour.db"), nil
+}
+
+// resolvedWorkHourDBPath returns configured SQLite file path or the default file path.
+func (a *App) resolvedWorkHourDBPath() (string, error) {
+	c, err := readAppConfig()
+	if err != nil {
+		return defaultWorkHourDBPath()
+	}
+	p := strings.TrimSpace(c.WorkHourDBPath)
+	if p == "" {
+		return defaultWorkHourDBPath()
+	}
+	return filepath.Clean(p), nil
+}
+
+// GetDefaultWorkHourDBPath returns the built-in default work hour database path (for display).
+func (a *App) GetDefaultWorkHourDBPath() string {
+	s, err := defaultWorkHourDBPath()
+	if err != nil {
+		return ""
+	}
+	return s
+}
+
+// GetWorkHourDBPath returns the effective SQLite database file path used by the app.
+func (a *App) GetWorkHourDBPath() (string, error) {
+	return a.resolvedWorkHourDBPath()
+}
+
+// SetWorkHourDBPath sets the SQLite database file path. Pass empty string to use the default location.
+func (a *App) SetWorkHourDBPath(path string) error {
+	path = strings.TrimSpace(path)
+	c, err := readAppConfig()
+	if err != nil {
+		c = appConfig{}
+	}
+	if path == "" {
+		c.WorkHourDBPath = ""
+		return writeAppConfig(c)
+	}
+	path = filepath.Clean(path)
+	if st, err := os.Stat(path); err == nil && st.IsDir() {
+		return errors.New("path must be a database file, not a directory")
+	}
+	parent := filepath.Dir(path)
+	if parent != "." && parent != "" && parent != path {
+		if err := os.MkdirAll(parent, 0o755); err != nil {
+			return err
+		}
+	}
+	c.WorkHourDBPath = path
+	return writeAppConfig(c)
+}
+
+// ChooseWorkHourDBPath opens a save dialog to pick the SQLite file path. Returns "" if cancelled.
+func (a *App) ChooseWorkHourDBPath() (string, error) {
+	if a.ctx == nil {
+		return "", errors.New("app not ready")
+	}
+	opts := runtime.SaveDialogOptions{
+		Title:                "Choose SQLite database file",
+		DefaultFilename:      "work_hour.db",
+		CanCreateDirectories: true,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "SQLite (*.db;*.sqlite)", Pattern: "*.db;*.sqlite"},
+		},
+	}
+	current, err := a.resolvedWorkHourDBPath()
+	if err != nil {
+		current = ""
+	}
+	if current != "" {
+		dir := filepath.Dir(current)
+		if st, err := os.Stat(dir); err == nil && st.IsDir() {
+			opts.DefaultDirectory = dir
+		}
+	}
+	if opts.DefaultDirectory == "" {
+		if d, err := defaultWorkHourDBPath(); err == nil {
+			if parent := filepath.Dir(d); parent != d {
+				if st, err := os.Stat(parent); err == nil && st.IsDir() {
+					opts.DefaultDirectory = parent
+				}
+			}
+		}
+	}
+	return runtime.SaveFileDialog(a.ctx, opts)
 }
 
 const seedWelcomeMD = `# Welcome

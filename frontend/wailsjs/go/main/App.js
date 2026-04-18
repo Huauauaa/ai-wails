@@ -6,6 +6,10 @@ export function ChooseBlogWorkDir() {
   return window['go']['main']['App']['ChooseBlogWorkDir']();
 }
 
+export function ChooseWorkHourDBPath() {
+  return window['go']['main']['App']['ChooseWorkHourDBPath']();
+}
+
 export function DeleteBlogFile(arg1) {
   return window['go']['main']['App']['DeleteBlogFile'](arg1);
 }
@@ -22,8 +26,16 @@ export function GetDefaultBlogWorkDir() {
   return window['go']['main']['App']['GetDefaultBlogWorkDir']();
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
+export function GetDefaultWorkHourDBPath() {
+  return window['go']['main']['App']['GetDefaultWorkHourDBPath']();
+}
+
+export function GetWorkHourDBPath() {
+  return window['go']['main']['App']['GetWorkHourDBPath']();
+}
+
+export function GetWorkHourRecords() {
+  return window['go']['main']['App']['GetWorkHourRecords']();
 }
 
 export function ListBlogMarkdownFiles() {
@@ -34,12 +46,20 @@ export function ReadBlogFile(arg1) {
   return window['go']['main']['App']['ReadBlogFile'](arg1);
 }
 
+export function RefreshWorkHourData() {
+  return window['go']['main']['App']['RefreshWorkHourData']();
+}
+
 export function RenameBlogFile(arg1, arg2) {
   return window['go']['main']['App']['RenameBlogFile'](arg1, arg2);
 }
 
 export function SetBlogWorkDir(arg1) {
   return window['go']['main']['App']['SetBlogWorkDir'](arg1);
+}
+
+export function SetWorkHourDBPath(arg1) {
+  return window['go']['main']['App']['SetWorkHourDBPath'](arg1);
 }
 
 export function WriteBlogFile(arg1, arg2) {

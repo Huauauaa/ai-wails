@@ -13,6 +13,9 @@ type Props = {
   onBlogNew: () => void;
   onBlogDelete: (id: string) => void;
   onBlogRename: (oldName: string, newName: string) => void | Promise<void>;
+  /** Work hour sidebar summary */
+  workHourRecordCount?: number;
+  workHourDbPath?: string;
 };
 
 const rowClass =
@@ -227,6 +230,8 @@ function SidebarBody({
   onBlogNew,
   onBlogDelete,
   onBlogRename,
+  workHourRecordCount,
+  workHourDbPath,
 }: Omit<Props, "width" | "onResizeStart">) {
   if (activity === "blog") {
     return (
@@ -288,36 +293,38 @@ function SidebarBody({
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-[#bbbbbb]">Workhour</div>
-      <div className="allow-select space-y-3 px-3 pb-3 text-[13px] text-[#cccccc]">
+      <div className="allow-select min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-3 text-[13px] text-[#cccccc]">
         <div>
-          <div className="mb-1 text-[11px] uppercase text-[#858585]">Today</div>
-          <div className="font-mono text-[#b5cea8]">3h 25m</div>
+          <div className="mb-1 text-[11px] uppercase text-[#858585]">Records</div>
+          <div className="font-mono text-[#b5cea8]">
+            {workHourRecordCount === undefined ? "—" : workHourRecordCount}
+          </div>
         </div>
         <div>
-          <div className="mb-1 text-[11px] uppercase text-[#858585]">This week</div>
-          <div className="font-mono">18h 10m</div>
+          <div className="mb-1 text-[11px] uppercase text-[#858585]">Database</div>
+          <div className="break-all font-mono text-[11px] leading-snug text-[#858585]" title={workHourDbPath}>
+            {workHourDbPath || "—"}
+          </div>
         </div>
-        <button
-          type="button"
-          className="w-full rounded border border-[var(--vscode-border)] bg-[#3c3c3c] px-2 py-1.5 text-left text-[12px] hover:bg-[#454545]"
-        >
-          Log time…
-        </button>
+        <p className="text-[11px] leading-snug text-[#858585]">
+          主区域展示 <code className="rounded bg-[#2d2d2d] px-1 py-0.5 font-mono">attendance_records</code>{" "}
+          ；进入页面仅从数据库读取。「刷新」由 Go 无头浏览器取 Cookie 后拉取并入库。
+        </p>
       </div>
     </div>
   );
 }
 
 export function Sidebar(props: Props) {
-  const { activity, width, onResizeStart, ...blogRest } = props;
+  const { activity, width, onResizeStart, ...rest } = props;
   return (
     <aside
       className="relative flex min-w-0 shrink-0 flex-col border-r border-[var(--vscode-border)]"
       style={{ width, background: "var(--vscode-sideBar-bg)" }}
     >
-      <SidebarBody activity={activity} {...blogRest} />
+      <SidebarBody {...rest} activity={activity} />
       <button
         type="button"
         aria-label="Resize sidebar"
