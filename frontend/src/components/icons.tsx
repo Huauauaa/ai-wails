@@ -55,3 +55,35 @@ export function IconChevronDown({ className }: IconProps) {
     </svg>
   );
 }
+
+export function IconBlog({ className }: IconProps) {
+  return (
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+    </svg>
+  );
+}
+
+export function IconTool({ className }: IconProps) {
+  return (
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M22.61 18.99l-9.08-9.08c.93-2.34.45-5.1-1.44-7C9.79.61 6.05.4 3.41 2.05L7.63 6.27 6.21 7.69 2 3.47 2.47 3c-.96 1.35-1.45 2.99-.45 4.66 1.17 2.03 3.45 2.91 5.73 2.57 1.06-.13 2.07-.59 2.89-1.41l9.08 9.08c.39.39 1.02.39 1.41 0l2.12-2.12c.39-.39.39-1.02 0-1.41zm-19.61.01c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1zm6.36-13.96c-.56 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z" />
+    </svg>
+  );
+}
+
+export function IconPullRequest({ className }: IconProps) {
+  return (
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z" />
+    </svg>
+  );
+}
+
+export function IconWorkhour({ className }: IconProps) {
+  return (
+    <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
+    </svg>
+  );
+}

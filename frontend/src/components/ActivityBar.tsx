@@ -1,24 +1,17 @@
-import {
-  IconExplorer,
-  IconExtensions,
-  IconRun,
-  IconSearch,
-  IconSourceControl,
-} from "./icons";
+import { IconBlog, IconPullRequest, IconTool, IconWorkhour } from "./icons";
 
-export type ActivityId = "explorer" | "search" | "scm" | "run" | "extensions";
+export type ActivityId = "blog" | "tool" | "pullRequest" | "workhour";
 
 type Props = {
   active: ActivityId;
   onChange: (id: ActivityId) => void;
 };
 
-const entries: { id: ActivityId; label: string; Icon: typeof IconExplorer }[] = [
-  { id: "explorer", label: "Explorer", Icon: IconExplorer },
-  { id: "search", label: "Search", Icon: IconSearch },
-  { id: "scm", label: "Source Control", Icon: IconSourceControl },
-  { id: "run", label: "Run and Debug", Icon: IconRun },
-  { id: "extensions", label: "Extensions", Icon: IconExtensions },
+const entries: { id: ActivityId; label: string; Icon: typeof IconBlog }[] = [
+  { id: "blog", label: "Blog", Icon: IconBlog },
+  { id: "tool", label: "Tool", Icon: IconTool },
+  { id: "pullRequest", label: "Pull Request", Icon: IconPullRequest },
+  { id: "workhour", label: "Workhour", Icon: IconWorkhour },
 ];
 
 export function ActivityBar({ active, onChange }: Props) {
