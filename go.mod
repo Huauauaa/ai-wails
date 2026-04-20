@@ -1,6 +1,8 @@
 module ai-wails
 
-go 1.23
+go 1.26
+
+toolchain go1.26.2
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20241022234722-4d5d5faf59fb
